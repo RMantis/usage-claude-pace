@@ -1,0 +1,26 @@
+name: Release
+
+# Pushing a tag like v0.2.0 builds usage-pace.plugin (a zip of the repository with .claude-plugin/
+# at its top, the format the desktop app's "upload a plugin" screen takes) and attaches it to a
+# GitHub release.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build usage-pace.plugin
+        run: git archive --format=zip -o usage-pace.plugin HEAD -- . ':(exclude).github'
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" usage-pace.plugin --title "$GITHUB_REF_NAME" --generate-notes
