@@ -1,8 +1,16 @@
 {
   "name": "usage-pace",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A band above the prompt that shows your weekly Claude usage against the pace that would land you on exactly 100% at the reset.",
   "author": { "name": "RMantis" },
   "repository": "https://github.com/RMantis/usage-claude-pace",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "workingDays": {
+      "type": "string",
+      "title": "Working days",
+      "description": "Days that count towards the pace, e.g. mon-fri or mon,tue,wed,thu,fri. Days left out are skipped (no budget, no pace). Default: every day.",
+      "default": "mon-sun"
+    }
+  }
 }

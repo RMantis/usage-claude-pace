@@ -49,6 +49,20 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 It shows nothing until Claude has replied once in the session, since that is when the usage figures arrive.
 After that the last reading is remembered across sessions until the window resets.
 
+## Configuration
+
+One option, **Working days** (`workingDays`), for when you only want some days to count, for example a work
+account that you leave alone at the weekend:
+
+- `mon-fri` or `mon,tue,wed,thu,fri`: only those days count. Skipped days get no budget and the pace does not
+  advance during them, so each working day is worth 1/5 of the week and the pace reads 0% on Monday morning.
+  The "left per day" figure becomes "left per work day".
+- The default is every day (`mon-sun`). Anything unreadable also falls back to every day.
+
+Days are matched on your local calendar, so with a reset on Friday 08:00 the first Friday only counts from 08:00
+and the last one up to 08:00. Change it from the plugin's rows in the config menu; the mod reloads with the new
+value.
+
 ## Notes
 
 - It needs a plan that reports rate-limit windows. Off a subscription there is nothing to show.
