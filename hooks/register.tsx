@@ -24,8 +24,8 @@ const parseWorkingDays = (raw: unknown): boolean[] => {
   const flags = [false, false, false, false, false, false, false]
   const names = DAY_KEYS.join('|')
   for (const m of text.matchAll(new RegExp('(' + names + ')[a-z]*\\s*-\\s*(' + names + ')', 'g'))) {
-    let i = DAY_KEYS.indexOf(m[1])
-    const end = DAY_KEYS.indexOf(m[2])
+    let i = DAY_KEYS.indexOf(m[1] ?? '')
+    const end = DAY_KEYS.indexOf(m[2] ?? '')
     flags[i] = true
     while (i !== end) {
       i = (i + 1) % 7
@@ -305,16 +305,18 @@ export const register: Register = (on, options) => {
       cuts.sort((x, y) => x - y)
       const bar = []
       for (let i = 0; i < cuts.length - 1; i++) {
-        const w = Math.round(cuts[i + 1] * 100) - Math.round(cuts[i] * 100)
+        const lower = cuts[i] ?? 0
+        const upper = cuts[i + 1] ?? 1
+        const w = Math.round(upper * 100) - Math.round(lower * 100)
         if (w > 0) {
-          const isFill = cuts[i + 1] <= f + 0.0001
+          const isFill = upper <= f + 0.0001
           bar.push(
             <Box key={`b${d}-${i}`} width={`${w}%`} minWidth={0} flexShrink={0} height={1} overflow="hidden">
               <Text color={isFill ? color : 'inactive'} wrap="clip">{GLYPH.repeat(40)}</Text>
             </Box>,
           )
         }
-        if (p !== null && Math.abs(cuts[i + 1] - p) < 0.0001 && p > 0.0001 && p < 0.9999) {
+        if (p !== null && Math.abs(upper - p) < 0.0001 && p > 0.0001 && p < 0.9999) {
           bar.push(
             <Box key={`m${d}`} width={1} flexShrink={0} height={1} overflow="hidden">
               <Text color="text">█</Text>
