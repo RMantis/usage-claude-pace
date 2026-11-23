@@ -53,3 +53,7 @@ After that the last reading is remembered across sessions until the window reset
 
 - It needs a plan that reports rate-limit windows. Off a subscription there is nothing to show.
 - Early-access plugin API: it may need changes as Claude Code's mod API evolves.
+
+## License
+
+WTFPL WIF DISCLAIMERZ (the WTFPL, plus a warranty disclaimer), see [LICENSE](LICENSE).
