@@ -49,6 +49,13 @@ const USAGE =
   '/pace days mon-fri  (or mon,tue,wed… or all): the days that count towards the pace.\n' +
   '/pace view recap|detail|toggle: the one-line recap or the expanded view.'
 
+// Writes the `workingDays` option, as the person would in the config menu. Returns the refusal, if any.
+async function setDays($: EngineInterface, flags: boolean[]): Promise<string | undefined> {
+  const { deny } = await $.config.set({ key: 'usage-pace.workingDays', value: toSpec(flags) })
+  if (deny) $.ui.toast(`Usage pace: ${deny}`)
+  return deny
+}
+
 // Milliseconds of working time (local calendar days flagged in `work`) between two instants.
 const workMs = (from: number, to: number, work: boolean[]): number => {
   let total = 0
@@ -81,12 +88,6 @@ export const register: Register = (on, options) => {
 
     return next(e)
   })
-
-  const setDays = async ($: EngineInterface, flags: boolean[]) => {
-    const { deny } = await $.config.set({ key: 'usage-pace.workingDays', value: toSpec(flags) })
-    if (deny) $.ui.toast(`Usage pace: ${deny}`)
-    return deny
-  }
 
   on('command.run', { command: 'pace' }, async ($, e) => {
     const [sub = '', ...rest] = e.args.trim().split(/\s+/)
