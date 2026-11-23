@@ -63,6 +63,14 @@ Days are matched on your local calendar, so with a reset on Friday 08:00 the fir
 and the last one up to 08:00. Change it from the plugin's rows in the config menu; the mod reloads with the new
 value.
 
+### The `/pace` command
+
+You can also change both settings without the config menu:
+
+- `/pace` opens a small pane with a button per weekday and the view switch.
+- `/pace days mon-fri` (or `mon,tue,wed`, or `all`) sets the working days.
+- `/pace view recap`, `/pace view detail` or `/pace view toggle` switches the view.
+
 ## Notes
 
 - It needs a plan that reports rate-limit windows. Off a subscription there is nothing to show.

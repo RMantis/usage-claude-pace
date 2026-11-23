@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
 import type { PaceSnap } from '../types'
 
@@ -38,6 +38,17 @@ const parseWorkingDays = (raw: unknown): boolean[] => {
   return flags.some(Boolean) ? flags : [true, true, true, true, true, true, true]
 }
 
+// The `workingDays` option text for a set of flags ("mon-sun" when every day works).
+const toSpec = (flags: boolean[]): string =>
+  flags.every(Boolean) ? 'mon-sun' : DAY_KEYS.filter((_, i) => flags[i]).join(',')
+
+const PANE = 'usage-pace'
+const ORDER = [1, 2, 3, 4, 5, 6, 0] // Monday first
+const USAGE =
+  '/pace opens the settings pane.\n' +
+  '/pace days mon-fri  (or mon,tue,wed… or all): the days that count towards the pace.\n' +
+  '/pace view recap|detail|toggle: the one-line recap or the expanded view.'
+
 // Milliseconds of working time (local calendar days flagged in `work`) between two instants.
 const workMs = (from: number, to: number, work: boolean[]): number => {
   let total = 0
@@ -61,6 +72,91 @@ const isSnap = (v: unknown): v is PaceSnap =>
 export const register: Register = (on, options) => {
   const work = parseWorkingDays(options?.workingDays)
   const isCustom = work.some(w => !w)
+  on('session.start', async ($, e, next) => {
+    await $.command.register({
+      name: 'pace',
+      description: 'Usage pace settings: working days and view',
+      argumentHint: '[days mon-fri | view recap|detail]',
+    })
+
+    return next(e)
+  })
+
+  const setDays = async ($: EngineInterface, flags: boolean[]) => {
+    const { deny } = await $.config.set({ key: 'usage-pace.workingDays', value: toSpec(flags) })
+    if (deny) $.ui.toast(`Usage pace: ${deny}`)
+    return deny
+  }
+
+  on('command.run', { command: 'pace' }, async ($, e) => {
+    const [sub = '', ...rest] = e.args.trim().split(/\s+/)
+    const arg = rest.join(' ').toLowerCase()
+
+    if (sub === '') {
+      await $.ui.open({ id: PANE, title: 'Usage pace' })
+      return { text: 'Usage pace settings opened.' }
+    }
+
+    if (sub === 'days') {
+      const isReadable = /\b(all|every)/.test(arg) || DAY_KEYS.some(k => arg.includes(k))
+      if (!isReadable) return { text: `Which days? Example: /pace days mon-fri\n${USAGE}` }
+      const flags = /\b(all|every)/.test(arg) ? [true, true, true, true, true, true, true] : parseWorkingDays(arg)
+      const deny = await setDays($, flags)
+      return { text: deny ? `Could not change the working days: ${deny}` : `Working days: ${toSpec(flags)}` }
+    }
+
+    if (sub === 'view') {
+      const current = (await read($, viewAtom)) as 'recap' | 'detail'
+      const next = arg.startsWith('d') ? 'detail' : arg.startsWith('r') ? 'recap' : current === 'recap' ? 'detail' : 'recap'
+      await update($, viewAtom, () => next)
+      return { text: `View: ${next}` }
+    }
+
+    return { text: USAGE }
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const view = (await read($, viewAtom)) as 'recap' | 'detail'
+
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Text bold>Working days</Text>
+        <Text dimColor>Days left out get no budget, and the pace does not advance during them.</Text>
+        <Box flexDirection="row" gap={1}>
+          {ORDER.map(i => (
+            <Button
+              key={`day-${DAY_KEYS[i]}`}
+              label={`${DAYS[i]} ${work[i] ? '✓' : '·'}`}
+              onPress={() => {
+                const next = work.map((w, j) => (j === i ? !w : w))
+                // Leaving no day at all would fall back to every day: ignore that press.
+                if (next.some(Boolean)) void setDays($, next)
+              }}
+            />
+          ))}
+        </Box>
+        <Box flexDirection="row" gap={1}>
+          <Button key="preset-all" label="Every day" onPress={() => void setDays($, [true, true, true, true, true, true, true])} />
+          <Button key="preset-week" label="Mon–Fri" onPress={() => void setDays($, [false, true, true, true, true, true, false])} />
+        </Box>
+        <Text bold>View</Text>
+        <Box flexDirection="row" gap={1}>
+          <Button
+            key="view-recap"
+            label={`One line ${view === 'recap' ? '✓' : ''}`.trim()}
+            onPress={() => update($, viewAtom, () => 'recap')}
+          />
+          <Button
+            key="view-detail"
+            label={`Detailed ${view === 'detail' ? '✓' : ''}`.trim()}
+            onPress={() => update($, viewAtom, () => 'detail')}
+          />
+        </Box>
+      </Box>
+    )
+  })
+
   // On every measurement: keep the latest weekly usage (and persist it across sessions).
   on('session.measure', async ($, e, next) => {
     const week = e.rateLimits.find(r => r.kind === 'seven_day')
